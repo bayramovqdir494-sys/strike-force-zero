@@ -46,8 +46,8 @@ export class World{
     this.towers=[]; this.obs=[]; this.nets=[]; this.covers=[]; this.dyn=[]; this.targets=[]; this.lamps=[]; this.pickups=[]; this.patrol=[]; this.enemySpots=[];
     const occ=[]; const free=(x,z,r)=>{ if(Math.abs(x)>H-3||Math.abs(z)>H-3)return false; if(Math.hypot(x,z+H-6)<9)return false; for(const o of occ) if(Math.abs(x-o[0])<r+o[2]&&Math.abs(z-o[1])<r+o[2])return false; return true; };
     const put=(name,x,z,rot=0,opt={})=>{ const src=opt.dynamic&&!['tank','radar'].includes(name)?compact(lib.props[name]):lib.props[name]; const o=src.clone(); o.position.set(x,opt.y||0,z); o.rotation.y=rot; if(opt.s)o.scale.setScalar(opt.s); (opt.dynamic?root:statics).add(o);
-      o.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(o); if(opt.nocol) return o;
-      const ob={minX:bb.min.x,maxX:bb.max.x,minZ:bb.min.z,maxZ:bb.max.z,h:opt.h||bb.max.y,name,obj:o,vault:!!opt.vault,hp:opt.hp||0,explosive:!!opt.explosive};
+      o.rotation.y=0; o.updateMatrixWorld(true); const lb=new THREE.Box3().setFromObject(o); o.rotation.y=rot; o.updateMatrixWorld(true); const bb=new THREE.Box3().setFromObject(o); if(opt.nocol) return o;
+      const ob={minX:bb.min.x,maxX:bb.max.x,minZ:bb.min.z,maxZ:bb.max.z,h:opt.h||bb.max.y,name,obj:o,vault:!!opt.vault,hp:opt.hp||0,explosive:!!opt.explosive}; { const sk=/wall|house|build|tower|bunker|hangar|fence|container/.test(name)?0.98:0.9; ob.ocx=(lb.min.x+lb.max.x)/2; ob.ocz=(lb.min.z+lb.max.z)/2; const ddx=ob.ocx-x, ddz=ob.ocz-z, c=Math.cos(rot), sn=Math.sin(rot); ob.ocx=x+ddx*c+ddz*sn; ob.ocz=z-ddx*sn+ddz*c; ob.ohx=(lb.max.x-lb.min.x)/2*sk; ob.ohz=(lb.max.z-lb.min.z)/2*sk; ob.oc=c; ob.os=sn; if(/barrel|rock|palm|tree|pine|jerry|tire|drum|bush/.test(name)) ob.cr=(ob.ohx+ob.ohz)/2*0.92; }
       this.obs.push(ob); occ.push([x,z,Math.max(bb.max.x-bb.min.x,bb.max.z-bb.min.z)/2+.6]); if(ob.h>0.8&&ob.h<8&&!opt.nocover) this.addCovers(ob); return ob; };
     this.put=put;
     // perimeter wall with gaps
@@ -156,7 +156,13 @@ diffuseColor*=sampledDiffuseColor;`); };
       const g=o.geometry.clone().applyMatrix4(o.matrixWorld); for(const k of Object.keys(g.attributes)) if(!['position','normal','uv'].includes(k)) g.deleteAttribute(k); if(!g.attributes.uv) g.setAttribute('uv',new THREE.BufferAttribute(new Float32Array(g.attributes.position.count*2),2)); const vk=vcKey(o.material); if(vk.vc)addVC(g,o.material); const key=vk.key+'|'+cell; if(!by.has(key))by.set(key,{m:vk.mat,g:[],far,small}); by.get(key).g.push(g.index?g.toNonIndexed():g); });
     for(const {m,g,far,small} of by.values()){ const mg=mergeGeometries(g,false); if(!mg)continue; mg.computeBoundingSphere(); const mesh=new THREE.Mesh(mg,m); mesh.castShadow=!far&&!small; mesh.receiveShadow=!far; mesh.userData.merged=true; root.add(mesh); } }
   // --- collision ---
-  collide(p,r,h=1.5){ for(const o of this.obs){ if(o.dead||o.h<0.35)continue; if(p.y>o.h-0.05)continue; const nx=Math.max(o.minX,Math.min(p.x,o.maxX)), nz=Math.max(o.minZ,Math.min(p.z,o.maxZ)); const dx=p.x-nx, dz=p.z-nz, d2=dx*dx+dz*dz;
+  collide(p,r,h=1.5){ // circle vs oriented boxes, push-out along the contact normal => sliding; low ledges are stepped over
+    for(let it=0;it<2;it++) for(const o of this.obs){ if(o.dead||o.h<0.45)continue; if(p.y>o.h-0.05)continue; if(p.x<o.minX-r||p.x>o.maxX+r||p.z<o.minZ-r||p.z>o.maxZ+r)continue;
+      if(o.cr){ const dx=p.x-o.ocx, dz=p.z-o.ocz, R2=o.cr+r, d2=dx*dx+dz*dz; if(d2<R2*R2&&d2>1e-8){ const d=Math.sqrt(d2); p.x=o.ocx+dx/d*R2; p.z=o.ocz+dz/d*R2; } continue; }
+      if(o.ohx!==undefined){ const c=o.oc,s=o.os, wx=p.x-o.ocx, wz=p.z-o.ocz; const lx=wx*c-wz*s, lz=wx*s+wz*c; const qx=Math.max(-o.ohx,Math.min(lx,o.ohx)), qz=Math.max(-o.ohz,Math.min(lz,o.ohz)); let dx=lx-qx, dz=lz-qz; const d2=dx*dx+dz*dz; if(d2>=r*r)continue;
+        let nx,nz; if(d2>1e-6){ const d=Math.sqrt(d2); nx=lx-qx+dx/d*(r-d); nz=lz-qz+dz/d*(r-d); nx=qx+dx/d*r; nz=qz+dz/d*r; } else { const ex=o.ohx-Math.abs(lx), ez=o.ohz-Math.abs(lz); if(ex<ez){ nx=(Math.sign(lx)||1)*(o.ohx+r); nz=lz; } else { nz=(Math.sign(lz)||1)*(o.ohz+r); nx=lx; } }
+        p.x=o.ocx+nx*c+nz*s; p.z=o.ocz-nx*s+nz*c; continue; }
+      const nx=Math.max(o.minX,Math.min(p.x,o.maxX)), nz=Math.max(o.minZ,Math.min(p.z,o.maxZ)); const dx=p.x-nx, dz=p.z-nz, d2=dx*dx+dz*dz;
       if(d2<r*r){ if(d2>1e-6){ const d=Math.sqrt(d2); p.x+=dx/d*(r-d); p.z+=dz/d*(r-d); } else { const l=[p.x-o.minX,o.maxX-p.x,p.z-o.minZ,o.maxZ-p.z]; const m=Math.min(...l); if(m===l[0])p.x=o.minX-r; else if(m===l[1])p.x=o.maxX+r; else if(m===l[2])p.z=o.minZ-r; else p.z=o.maxZ+r; } } }
     const L=this.H+30; p.x=Math.max(-L,Math.min(L,p.x)); p.z=Math.max(-L,Math.min(L,p.z)); }
   // ray vs obstacles (3D slabs) -> {t,ob,n}

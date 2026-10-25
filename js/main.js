@@ -25,7 +25,7 @@ const canvas=$('c'); const renderer=new THREE.WebGLRenderer({canvas,antialias:fa
 renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 const scene=new THREE.Scene(); const camera=new THREE.PerspectiveCamera(65,1,0.1,600);
 const sun=new THREE.DirectionalLight(0xffffff,3); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); const sc=sun.shadow.camera; sc.left=sc.bottom=-30; sc.right=sc.top=30; sc.near=1; sc.far=160; sun.shadow.bias=-0.0004; sun.shadow.normalBias=0.03; scene.add(sun,sun.target);
-const hemi=new THREE.HemisphereLight(0xffffff,0x444444,1); scene.add(hemi); const rim=new THREE.DirectionalLight(0x8090ff,0); scene.add(rim,rim.target); const bossKey=new THREE.PointLight(0xffd0b0,0,14,1.4); scene.add(bossKey);
+const hemi=new THREE.HemisphereLight(0xffffff,0x444444,1); scene.add(hemi); const rim=new THREE.DirectionalLight(0x8090ff,0); scene.add(rim,rim.target); const bossKey=new THREE.PointLight(0xffd0b0,0,14,1.4); if(!TOUCH)scene.add(bossKey); // per-pixel point light is costly on phones
 const sky=new THREE.Mesh(new THREE.SphereGeometry(400,32,16),new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,uniforms:{top:{value:new THREE.Color()},bot:{value:new THREE.Color()},sunDir:{value:new THREE.Vector3()},sunC:{value:new THREE.Color()}},
   vertexShader:`varying vec3 vP; void main(){ vP=normalize(position); vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.0); gl_Position=p.xyww; }`,
   fragmentShader:`uniform vec3 top,bot,sunDir,sunC; varying vec3 vP; float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);} 
@@ -33,36 +33,40 @@ const sky=new THREE.Mesh(new THREE.SphereGeometry(400,32,16),new THREE.ShaderMat
   void main(){ float y=vP.y; vec3 c=mix(bot,top,pow(clamp(y,0.0,1.0),0.55)); float s=max(dot(vP,normalize(sunDir)),0.0); c+=sunC*(pow(s,600.0)*6.0+pow(s,12.0)*0.35);
     vec2 uv=vP.xz/(y+0.15)*2.0; float cl=n(uv)*0.6+n(uv*2.3)*0.3+n(uv*5.1)*0.1; cl=smoothstep(0.55,0.85,cl)*smoothstep(0.0,0.25,y); c=mix(c,mix(bot*1.1,vec3(1.0),0.5)+sunC*0.15*s,cl*0.55);
     if(y<0.0) c=bot*0.9; gl_FragColor=vec4(c,1.0); }`})); scene.add(sky);
-const composer=new EffectComposer(renderer); composer.addPass(new RenderPass(scene,camera));
+const composer=new EffectComposer(renderer,new THREE.WebGLRenderTarget(innerWidth,innerHeight,{type:THREE.HalfFloatType,samples:4})); composer.addPass(new RenderPass(scene,camera));
 const bloom=new UnrealBloomPass(new THREE.Vector2(256,256),0.55,0.5,0.92); composer.addPass(bloom);
-const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uT:{value:0},uC:{value:1.1},uS:{value:1.1},uLift:{value:new THREE.Vector3()},uGain:{value:new THREE.Vector3(1,1,1)},uDmg:{value:0},uSlow:{value:0},uFlash:{value:0},uScope:{value:0},uHz:{value:[0,1,2,3].map(()=>new THREE.Vector4())},uAsp:{value:1.7},tDirt:{value:null},uDirt:{value:0}},
+const grade=new ShaderPass({uniforms:{tDiffuse:{value:null},uSh:{value:0},uTx:{value:new THREE.Vector2(1e-3,1e-3)},uGr:{value:TOUCH?0.015:0.03},uT:{value:0},uC:{value:1.1},uS:{value:1.1},uLift:{value:new THREE.Vector3()},uGain:{value:new THREE.Vector3(1,1,1)},uDmg:{value:0},uSlow:{value:0},uFlash:{value:0},uScope:{value:0},uHz:{value:[0,1,2,3].map(()=>new THREE.Vector4())},uAsp:{value:1.7},tDirt:{value:null},uDirt:{value:0}},
   vertexShader:`varying vec2 vUv; void main(){vUv=uv;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
-  fragmentShader:`uniform sampler2D tDiffuse,tDirt; uniform float uDirt,uT,uC,uS,uDmg,uSlow,uFlash,uScope,uAsp; uniform vec4 uHz[4]; uniform vec3 uLift,uGain; varying vec2 vUv;
+  fragmentShader:`uniform sampler2D tDiffuse,tDirt; uniform vec2 uTx; uniform float uSh,uGr,uDirt,uT,uC,uS,uDmg,uSlow,uFlash,uScope,uAsp; uniform vec4 uHz[4]; uniform vec3 uLift,uGain; varying vec2 vUv;
   float h(vec2 p){return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453);}
-  void main(){ vec2 d=vUv-0.5; float r=length(d); vec2 o=d*(0.004+0.012*uDmg+0.01*uSlow)*r*2.0; vec2 uv=vUv;
+  void main(){ vec2 d=vUv-0.5; float r=length(d); vec2 o=d*(0.012*uDmg+0.01*uSlow)*r*2.0; vec2 uv=vUv;
     for(int i=0;i<4;i++){ vec4 hz=uHz[i]; if(hz.w>0.0){ vec2 q=(vUv-hz.xy)*vec2(uAsp,1.0); float f=hz.w*smoothstep(hz.z,0.0,length(q))*smoothstep(-hz.z*1.2,0.0,q.y+hz.z*0.3); uv+=vec2(sin(vUv.y*90.0+uT*9.0+vUv.x*20.0),cos(vUv.x*70.0-uT*7.0))*f*0.0025; } }
     vec3 c=vec3(texture2D(tDiffuse,uv+o).r,texture2D(tDiffuse,uv).g,texture2D(tDiffuse,uv-o).b);
+    if(uSh>0.0){ vec3 nb=texture2D(tDiffuse,uv+vec2(uTx.x,0.0)).rgb+texture2D(tDiffuse,uv-vec2(uTx.x,0.0)).rgb+texture2D(tDiffuse,uv+vec2(0.0,uTx.y)).rgb+texture2D(tDiffuse,uv-vec2(0.0,uTx.y)).rgb; c=max(c+(c*4.0-nb)*uSh,c*0.5); }
     float l=dot(c,vec3(0.299,0.587,0.114)); c=mix(vec3(l),c,uS*(1.0-0.75*uSlow)); c=(c-0.5)*uC+0.5;
     vec3 sh=vec3(0.0,0.06,0.1), hi=vec3(0.1,0.04,-0.04); c+=mix(sh,hi,smoothstep(0.1,0.8,l))*0.35; c=c*uGain+uLift*(1.0-c);
     c=mix(c,c*vec3(0.75,0.9,1.25),uSlow*0.6);
     c*=mix(1.0,smoothstep(0.85,0.25,r),0.55+0.25*uSlow); c=mix(c,vec3(0.6,0.0,0.0),uDmg*smoothstep(0.25,0.75,r)*0.7);
     { vec3 dt=texture2D(tDirt,vUv).rgb; float lb=dot(texture2D(tDiffuse,vUv,4.0).rgb,vec3(0.33)); c+=dt*(uDirt*0.3+smoothstep(0.8,1.4,lb)*0.16)*vec3(1.0,0.92,0.8); }
-    c+=(h(vUv*vec2(1021.0,983.0)+fract(uT))-0.5)*0.035; c+=uFlash;
+    c+=(h(vUv*vec2(1021.0,983.0)+fract(uT))-0.5)*uGr; c+=uFlash;
     if(uScope>0.5){ vec2 q=d*vec2(${1.0},1.0); }
-    gl_FragColor=vec4(max(c,0.0),1.0);} `}); grade.uniforms.tDirt.value=(()=>{ const S=512,cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'); g.fillStyle='#000'; g.fillRect(0,0,S,S); g.globalCompositeOperation='lighter';
+    gl_FragColor=vec4(max(c,0.0),1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
+    } `}); grade.uniforms.tDirt.value=(()=>{ const S=512,cv=document.createElement('canvas'); cv.width=cv.height=S; const g=cv.getContext('2d'); g.fillStyle='#000'; g.fillRect(0,0,S,S); g.globalCompositeOperation='lighter';
   for(let i=0;i<70;i++){ const x=Math.random()*S,y=Math.random()*S,r=4+Math.random()*Math.random()*60,a=.04+Math.random()*.12; const gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,`rgba(255,255,255,${a})`); gr.addColorStop(.6,`rgba(255,255,255,${a*.5})`); gr.addColorStop(1,'rgba(0,0,0,0)'); g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,7); g.fill(); }
   g.lineCap='round'; for(let i=0;i<14;i++){ g.strokeStyle=`rgba(255,255,255,${.015+Math.random()*.03})`; g.lineWidth=1+Math.random()*3; g.beginPath(); let x=Math.random()*S,y=Math.random()*S; g.moveTo(x,y); for(let k=0;k<4;k++){ x+=(Math.random()-.5)*80; y+=(Math.random()-.5)*80; g.lineTo(x,y); } g.stroke(); }
   const t=new THREE.CanvasTexture(cv); t.generateMipmaps=true; t.minFilter=THREE.LinearMipmapLinearFilter; return t; })();
-composer.addPass(grade); composer.addPass(new OutputPass());
+composer.addPass(grade);
 let Q=TOUCH?1:2; // quality 0..2
-let shF=0, DYN=1, dynAcc=0, dynN=0; const PR=()=>{ const d=devicePixelRatio||1, base=Math.min(d,TOUCH?1.5:[1,1.25,1.5][Q]); return Math.min(d,Math.max(0.75,Math.min(1,d)*0.85,base*DYN)); }; // dynamic resolution scale (drops on slow phones)
-function applyQuality(){ const boot=!applyQuality.done; applyQuality.done=true; if(fx){ fx.q=Q; fx.deb.castShadow=Q>1&&!TOUCH; } world.maxLamps=[0,2,4][Q]; world.lowQ=Q<2;
+let shF=0, DYN=1, dynAcc=0, dynN=0; const PR=()=>{ const d=devicePixelRatio||1, base=Math.min(d,TOUCH?(Q>1?1.75:1.5):[1,1.25,1.5][Q]); return Math.min(d,Math.max(1,base*DYN)); }; // dynamic resolution scale (drops on slow phones)
+function applyQuality(){ const boot=!applyQuality.done; applyQuality.done=true; if(fx){ fx.q=Q; fx.deb.castShadow=Q>1&&!TOUCH; } world.maxLamps=TOUCH?[0,0,2][Q]:[0,2,4][Q]; world.lowQ=Q<2;
   // shadow type/enable/size are fixed at boot: toggling them at runtime recompiles every shader (multi-second freeze on phones)
   if(boot){ renderer.shadowMap.enabled=true; renderer.shadowMap.type=(Q>1&&!TOUCH)?THREE.PCFSoftShadowMap:THREE.PCFShadowMap; const ms=(Q>1&&!TOUCH)?2048:1024; sun.shadow.mapSize.set(ms,ms); if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null;} scene.traverse(o=>{ if(o.material&&!Array.isArray(o.material))o.material.needsUpdate=true; }); }
   renderer.shadowMap.autoUpdate=Q>1&&!TOUCH; renderer.shadowMap.needsUpdate=true; shEvery=Q>1?(TOUCH?2:1):Q>0?2:5; { const r=Q>1?30:22; sc.left=sc.bottom=-r; sc.right=sc.top=r; sc.updateProjectionMatrix(); }
-  DYN=1; renderer.setPixelRatio(PR()); bloom.enabled=Q>0; resize(); }
+  DYN=1; renderer.setPixelRatio(PR()); bloom.enabled=Q>0; { const sm=Q>1?4:0; for(const rt of [composer.renderTarget1,composer.renderTarget2]) if(rt.samples!==sm){ rt.samples=sm; rt.dispose(); } } { const an=Math.min(renderer.capabilities.getMaxAnisotropy(),Q>1?8:4); for(const k in lib.tex){ const t=lib.tex[k]; if(t&&t.isTexture&&t.anisotropy!==an){ t.anisotropy=an; t.needsUpdate=true; } } } resize(); }
 let shEvery=2;
-function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); composer.setSize(w,h); bloom.resolution.set(w/2,h/2); camera.aspect=w/h; camera.updateProjectionMatrix(); const px=h/800*renderer.getPixelRatio(); if(fx){fx.add.mat.uniforms.uPx.value=px; fx.smoke.mat.uniforms.uPx.value=px;} }
+function resize(){ const w=innerWidth,h=innerHeight; renderer.setSize(w,h,false); composer.setSize(w,h); bloom.resolution.set(w/(TOUCH?3:2),h/(TOUCH?3:2)); { const pr=renderer.getPixelRatio(); grade.uniforms.uTx.value.set(1/(w*pr),1/(h*pr)); grade.uniforms.uSh.value=TOUCH?(Q>1?0.12:0.2):(Q>1?0.06:0.1); } camera.aspect=w/h; camera.updateProjectionMatrix(); const px=h/800*renderer.getPixelRatio(); if(fx){fx.add.mat.uniforms.uPx.value=px; fx.smoke.mat.uniforms.uPx.value=px;} }
 addEventListener('resize',resize);
 let fx=null, decals=null;
 // ---------------- assets ----------------
@@ -711,4 +715,4 @@ function toMenuBg(){ G.state='menu'; $('hud').classList.add('hide'); $('touch').
   applyIcons();
   META.initMeta({save,persist,A,SDK,toast,adOK,TOUCH,show,getQ:()=>Q,setQ:q=>{ Q=q; save.q=Q; persist(); applyQuality(); },onMoney:()=>{ $('tmoney').textContent='$'+save.money; }});
   startMenuScene(); G.state='menu'; loop(); SDK.loadingStop(); $('loading').classList.add('gone'); toMenu(); window.SF_READY=true; })();
-window.SF={ATT,castShot,TT:T,setOp:v=>{save.op=v;},get SAVE(){return save;},setMenuT:v=>{menuT=v;},META,wreck,A,renderer,get fx(){return fx;},get decals(){return decals;},G,get P(){return P;},enemies,world,startMission,endCine,complete,slowmo,explode,save,lib,input,keys,pressed,shop,mapScreen,brief,setQ:q=>{Q=q;applyQuality();},sdkLog:SDK.sdkLog,get fps(){return fpsA;},camera,hud};
+window.SF={composer,ATT,castShot,TT:T,setOp:v=>{save.op=v;},get SAVE(){return save;},setMenuT:v=>{menuT=v;},META,wreck,A,renderer,get fx(){return fx;},get decals(){return decals;},G,get P(){return P;},enemies,world,startMission,endCine,complete,slowmo,explode,save,lib,input,keys,pressed,shop,mapScreen,brief,setQ:q=>{Q=q;applyQuality();},sdkLog:SDK.sdkLog,get fps(){return fpsA;},camera,hud};
