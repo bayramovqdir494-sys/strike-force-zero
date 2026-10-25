@@ -11,6 +11,9 @@ export const SKINS=[
   {id:'tiger',name:'TIGER',price:1500,cols:['#d07a20','#1a1410'],stripe:1},
   {id:'carbon',name:'CARBON',price:2200,carbon:1},
   {id:'crimson',name:'CRIMSON OPS',ad:1,cols:['#7a1018','#1a0a0c','#b0202a'],digi:1},
+  {id:'urban',name:'URBAN DIGI',ad:1,cols:['#7c8188','#3c4046','#a9adb2','#22252a'],digi:1},
+  {id:'blackops',name:'BLACK OPS',price:2500,solid:'#141518',met:.55,rough:.42},
+  {id:'jungle',name:'JUNGLE CAMO',ad:1,cols:['#3d5a2a','#1d2a14','#6e7a3a','#a08a52']},
   {id:'gold',name:'24K GOLD',price:6000,gold:1},
 ];
 export const ACH=[
@@ -55,12 +58,12 @@ function boxUV(geo){ if(GC.has(geo.uuid))return GC.get(geo.uuid); const g=geo.cl
 export function skinOf(w){ return C?(C.save.skins.eq[w]||'std'):'std'; }
 export function applySkin(obj,w,id){ id=id||skinOf(w); if(id==='std')return obj; const sk=SKINS.find(s=>s.id===id); if(!sk)return obj;
   obj.traverse(m=>{ if(!m.isMesh||!m.material||m.material.transparent)return; const mt=m.material; const c=mt.color; if(!c)return; const lum=c.r*.3+c.g*.59+c.b*.11; if(lum>.45||(mt.emissive&&mt.emissive.getHex()>0x101010&&mt.emissiveIntensity>0.5))return;
-    const k=mt.uuid+id; if(!MC.has(k)){ const n=mt.clone(); if(sk.gold){ n.color.set(0xd8a838); n.metalness=1; n.roughness=.28; n.map=null; } else { n.map=skinTex(sk); n.color.set(0xffffff); n.vertexColors=false; n.metalness=sk.carbon?.4:.15; n.roughness=sk.carbon?.35:.7; } n.needsUpdate=true; MC.set(k,n); }
-    m.material=MC.get(k); if(!sk.gold) m.geometry=boxUV(m.geometry); }); return obj; }
+    const k=mt.uuid+id; if(!MC.has(k)){ const n=mt.clone(); if(sk.gold){ n.color.set(0xd8a838); n.metalness=1; n.roughness=.28; n.map=null; } else if(sk.solid){ n.color.set(sk.solid); n.metalness=sk.met; n.roughness=sk.rough; n.map=null; n.vertexColors=false; } else { n.map=skinTex(sk); n.color.set(0xffffff); n.vertexColors=false; n.metalness=sk.carbon?.4:.15; n.roughness=sk.carbon?.35:.7; } n.needsUpdate=true; MC.set(k,n); }
+    m.material=MC.get(k); if(!sk.gold&&!sk.solid) m.geometry=boxUV(m.geometry); }); return obj; }
 export function skinPanel(w,onChange){ const box=$('skinBox'); box.innerHTML=''; const s=C.save; const cur=skinOf(w);
   let nm=$('skinName'); if(!nm){ nm=document.createElement('div'); nm.id='skinName'; box.parentNode.appendChild(nm); } nm.textContent='SKIN · '+SKINS.find(x=>x.id===cur).name;
   for(const sk of SKINS){ const own=s.skins.own.includes(sk.id); const b=document.createElement('button'); b.className='sk'+(cur===sk.id?' on':'')+(own?' own':'');
-    const sw=sk.gold?'linear-gradient(135deg,#fff2b0,#d8a838 45%,#7a5a10)':sk.carbon?'repeating-linear-gradient(45deg,#111 0 4px,#2a2e33 4px 8px)':sk.cols?`linear-gradient(135deg,${sk.cols.join(',')})`:'linear-gradient(135deg,#3a3e44,#1a1c20)';
+    const sw=sk.solid?`linear-gradient(135deg,#3a3c42,${sk.solid} 55%,#000)`:sk.gold?'linear-gradient(135deg,#fff2b0,#d8a838 45%,#7a5a10)':sk.carbon?'repeating-linear-gradient(45deg,#111 0 4px,#2a2e33 4px 8px)':sk.cols?`linear-gradient(135deg,${sk.cols.join(',')})`:'linear-gradient(135deg,#3a3e44,#1a1c20)';
     b.title=sk.name; b.innerHTML=`<i style="background:${sw}"></i><small>${own?(cur===sk.id?'EQUIPPED':'EQUIP'):sk.ad?ic('ad')+' AD':'$'+sk.price}</small>`;
     if(!own&&!sk.ad&&s.money<sk.price)b.classList.add('poor');
     b.onmouseenter=()=>{ nm.textContent='SKIN · '+sk.name+(own?'':sk.ad?' (WATCH AD)':' ($'+sk.price+')'); }; b.onmouseleave=()=>{ nm.textContent='SKIN · '+SKINS.find(x=>x.id===cur).name; };
