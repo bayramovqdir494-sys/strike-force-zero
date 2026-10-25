@@ -1,0 +1,51 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<link rel="icon" href="data:,"><title>Strike Force Zero</title><link rel="stylesheet" href="style.css">
+<script src="https://sdk.crazygames.com/crazygames-sdk-v3.js"></script>
+<script type="importmap">{"imports":{"three":"./vendor/three.module.min.js","three/addons/":"./vendor/jsm/"}}</script>
+</head><body>
+<canvas id="c"></canvas>
+<div id="scope"></div><div id="slowv"></div>
+<div id="hud" class="hide">
+  <div id="tl"><div id="obj"></div><div id="time">0:00</div></div>
+  <canvas id="radar" width="140" height="140"></canvas>
+  <div id="vitals"><div class="vb"><span>HP</span><b><i id="hpb"></i></b></div><div class="vb ar"><span>AR</span><b><i id="arb"></i></b></div></div>
+  <div id="wbox"><div id="wname"></div><div id="ammo"></div><div id="nades"></div></div>
+  <div id="cross"><i></i><i></i><i></i><i></i></div><div id="hitm"></div>
+  <div class="pbar" id="cookw"><i id="cookbar"></i><span>COOKING</span></div><div class="pbar" id="relw"><i id="relbar"></i><span>RELOADING</span></div>
+  <div id="killmsg"></div><div id="cash"></div><div id="pops"></div><div id="prompt"></div><div id="dmgdirs"></div>
+  <div id="bossbar" class="hide"><span>BOSS</span><b><i></i></b></div>
+  <button id="pauseBtn" class="ib">II</button><button id="mute" class="ib">🔊</button>
+  <div id="help">WASD move · Mouse aim · LMB fire · RMB aim · Shift sprint · C crouch/slide · Space roll/vault · Q cover · F knife/takedown · G hold=cook, release=throw · R reload · 1/2 swap · E use</div>
+</div>
+<div id="touch" class="hide">
+  <div id="stick"><div id="knob"></div></div>
+  <div id="tbtns">
+    <button class="tb big" id="tFire">FIRE</button><button class="tb" id="tAim">AIM</button><button class="tb" id="tReload">↻</button>
+    <button class="tb" id="tRoll">ROLL</button><button class="tb" id="tCrouch">CROUCH<br><small>SLIDE</small></button><button class="tb" id="tSprint">SPRINT</button>
+    <button class="tb" id="tCover">COVER</button><button class="tb" id="tKnife">🔪</button><button class="tb" id="tNade">💣</button><button class="tb" id="tSwap">⇄</button><button class="tb" id="tUse">USE</button>
+  </div>
+</div>
+<div id="cine" class="hide"><div class="lb t"></div><div class="lb b"></div><div id="subs"></div></div><button id="skip" class="hide">SKIP ▸</button>
+<div id="bossintro" class="hide"><div class="bt">⚠ HIGH VALUE TARGET</div><div class="bn">BOSS</div><div class="bs"></div></div>
+<div id="card" class="hide"><div class="cn">MISSION 1</div><div class="cz">NAME</div><div class="cl"></div><div class="co"></div></div>
+<div id="trans"></div>
+<div id="screen">
+  <div id="title" class="panel">
+    <div class="logo"><span class="l1">STRIKE</span><span class="l2">FORCE</span><span class="l3">ZERO</span></div>
+    <p class="sub">Special forces. Terrorist bases. No backup.</p>
+    <button id="play" class="big">▶ PLAY</button><button id="armory" class="mid">ARMORY</button><button id="qual" class="mid">⚙ SETTINGS</button><button id="achBtn" class="mid">🏆 ACHIEVEMENTS</button><button id="adCoinsT" class="mid adb">▶ WATCH AD: +$400</button>
+    <p class="money">FUNDS <b id="tmoney">$0</b></p>
+  </div>
+  <div id="map" class="panel hide"><h2>OPERATIONS</h2><div id="missions"></div><button id="mapBack" class="mid">BACK</button></div>
+  <div id="briefing" class="panel hide"><h2 id="bname"></h2><p id="bloc" class="dim"></p><p id="bobj" class="obj"></p><p id="bthreat" class="dim"></p><h3>PRIMARY WEAPON</h3><div id="bload"></div>
+    <div class="row"><button id="bBack" class="mid">BACK</button><button id="bShop" class="mid">ARMORY</button><button id="deploy" class="big">DEPLOY ▸</button></div></div>
+  <div id="shop" class="panel hide"><h2>ARMORY <span id="smoney"></span> <button id="adCoinsS" class="adb sm">▶ AD: +$400</button></h2><div id="wprevBox"><canvas id="wprev"></canvas><div id="wprevName"></div><div id="skinBox"></div></div><div id="wlist"></div><h3>GEAR</h3><div id="gear"></div><button id="shopBack" class="mid">BACK</button></div>
+  <div id="done" class="panel hide"><h1 id="dtitle" class="stamp">MISSION COMPLETE</h1><p id="dsub" class="dim"></p><div id="dstars"></div><div id="dstats"></div>
+    <div class="row"><button id="ddouble" class="mid adb">▶ DOUBLE (AD)</button><button id="dmenu" class="mid">MENU</button><button id="dshop" class="mid">ARMORY</button><button id="dnext" class="big">NEXT MISSION ▸</button></div></div>
+  <div id="dead" class="panel hide"><h1 class="red stamp">K.I.A.</h1><p id="dinfo" class="dim"></p><button id="revive" class="big">▶ REVIVE (AD)</button><div class="row"><button id="retry" class="mid">RETRY</button><button id="deadMenu" class="mid">MENU</button></div></div>
+  <div id="pausep" class="panel hide"><h2>PAUSED</h2><button id="resume" class="big">RESUME</button><button id="prestart" class="mid">RESTART</button><button id="pmute" class="mid">SOUND: ON</button><button id="psettings" class="mid">SETTINGS</button><button id="pmenu" class="mid">QUIT TO MENU</button></div>
+</div>
+<div id="loading"><div class="logo"><span class="l1">STRIKE</span><span class="l2">FORCE</span><span class="l3">ZERO</span></div><div class="lbar"><i id="loadbar"></i></div><p id="loadtxt">DEPLOYING…</p></div>
+<script type="module" src="js/main.js"></script>
+</body></html>
