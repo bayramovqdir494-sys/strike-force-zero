@@ -186,3 +186,16 @@ html,body{font-family:'Rajdhani','Segoe UI',Roboto,Arial,sans-serif}
 #gear .opb{display:flex;flex-direction:column;align-items:center;min-width:74px;padding:4px 6px;font-size:10px;letter-spacing:.5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.18)}
 #gear .opb i{width:34px;height:34px;border-radius:50%;display:block;margin-bottom:3px;border:2px solid #0008}#gear .opb.on{border-color:var(--acc);background:rgba(255,178,58,.22)}#gear .opb.poor{opacity:.5}
 @media (max-width:620px){#wlist{grid-template-columns:minmax(0,1fr);width:100%}#missions{grid-template-columns:repeat(2,minmax(0,1fr))}#achList{grid-template-columns:minmax(0,1fr)}#skinBox{grid-template-columns:repeat(4,40px)}}
+
+/* v4: attachments + icons */
+#attBox{width:min(760px,92vw);margin:0 auto 8px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+#attBox p{margin:2px 0;font-size:12px}
+.atg{display:flex;align-items:center;gap:3px;background:rgba(8,12,16,.75);border:1px solid rgba(255,255,255,.12);padding:3px 5px}
+.atg label{font-size:10px;font-weight:800;letter-spacing:1px;color:#aab;margin-right:3px;writing-mode:horizontal-tb}
+.atb{display:flex;flex-direction:column;align-items:center;min-width:58px;padding:3px 5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.15);line-height:1.05}
+.atb b{font-size:10px;letter-spacing:.5px}.atb small{font-size:9px;color:var(--acc)}.atb.own small{color:#7ff0b0}.atb.on{border-color:var(--acc);background:rgba(255,178,58,.22)}.atb.poor{opacity:.5}
+.wic{height:22px;width:66px;object-fit:contain;vertical-align:middle;margin-right:8px;filter:drop-shadow(0 1px 2px #000)}
+@media (max-height:500px){#skinBox{grid-template-columns:repeat(6,44px)}.atb{min-width:50px;padding:2px 4px}}
+@media (max-width:620px){.atg{flex-wrap:wrap}.atb{min-width:52px}}
+.surv small{display:block;font-size:12px;letter-spacing:2px;color:#ffb23a;margin-top:2px}
+@media (max-height:500px){.surv small{display:inline;margin:0 0 0 8px;font-size:11px}#title>*{flex-shrink:0}#title .l1{font-size:min(6vw,10vh)}#title .l2{font-size:min(7.5vw,13vh)}#title .l3{font-size:min(10vw,14vh)}#title .sub{display:none}#title .mid{padding:5px 24px 3px;font-size:17px}#title .big{padding:8px 40px 6px;font-size:24px}#title .money{margin:2px 0}#title{gap:3px;padding-top:8px;padding-bottom:6px}#title .mid,#title .big{margin-top:0;margin-bottom:0}}
