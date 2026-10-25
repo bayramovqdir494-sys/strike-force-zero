@@ -182,3 +182,7 @@ html,body{font-family:'Rajdhani','Segoe UI',Roboto,Arial,sans-serif}
 .tb.big{clip-path:none;padding:0;min-width:0;letter-spacing:1px;box-shadow:0 0 18px rgba(255,90,40,.35);font-family:"Rajdhani",sans-serif;font-weight:700}
 
 #achT{left:auto;right:16px;top:170px;transform:translate(calc(100% + 40px),0)}#achT.on{transform:translate(0,0)}
+#gear .oph{width:100%;margin:6px 0 0;text-align:center}#gear .ops{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;width:100%}
+#gear .opb{display:flex;flex-direction:column;align-items:center;min-width:74px;padding:4px 6px;font-size:10px;letter-spacing:.5px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.18)}
+#gear .opb i{width:34px;height:34px;border-radius:50%;display:block;margin-bottom:3px;border:2px solid #0008}#gear .opb.on{border-color:var(--acc);background:rgba(255,178,58,.22)}#gear .opb.poor{opacity:.5}
+@media (max-width:620px){#wlist{grid-template-columns:minmax(0,1fr);width:100%}#missions{grid-template-columns:repeat(2,minmax(0,1fr))}#achList{grid-template-columns:minmax(0,1fr)}#skinBox{grid-template-columns:repeat(4,40px)}}
