@@ -54,7 +54,7 @@ export class World{
     const wl=4; for(let s=0;s<4;s++) for(let i=-H;i<H;i+=wl){ const c=i+wl/2; if(Math.abs(c)<6&&(s===0||s===2))continue; const [x,z,r]=[[c,-H,0],[H,c,Math.PI/2],[c,H,0],[-H,c,Math.PI/2]][s]; put('wall',x,z,r,{nocover:true}); }
     // central compound
     const nb=2+Math.floor(R()*2); for(let i=0;i<nb;i++){ for(let k=0;k<30;k++){ const x=(R()-.5)*(M.size-24), z=(R()-.2)*(M.size-24)*0.8; if(free(x,z,7)){ put('bunker',x,z,Math.floor(R()*4)*Math.PI/2); this.enemySpots.push([x,z]); break; } } }
-    for(let i=0;i<2;i++) for(let k=0;k<30;k++){ const x=(R()-.5)*(M.size-14), z=(R()-.1)*(M.size-14)*0.85; if(free(x,z,3.5)){ put('tower',x,z,0,{nocover:true,h:9}); this.towers=(this.towers||[]); this.towers.push([x,z]); break; } }
+    for(let i=0;i<2;i++) for(let k=0;k<30;k++){ const x=(R()-.5)*(M.size-14), z=(R()-.1)*(M.size-14)*0.85; if(free(x,z,3.5)){ put('tower',x,z,0,{nocover:true,h:6.15}); this.towers=(this.towers||[]); this.towers.push([x,z]); break; } }
     const nc=M.containers?14:5; const cn=['container_r','container_b','container_g'];
     for(let i=0;i<nc;i++) for(let k=0;k<30;k++){ const x=(R()-.5)*(M.size-12), z=(R()-.35)*(M.size-12); const rot=R()<.5?0:Math.PI/2; if(free(x,z,4.2)){ put(cn[Math.floor(R()*3)],x,z,rot); if(R()<.3&&M.containers) put(cn[Math.floor(R()*3)],x,z,rot,{y:2.6,nocover:true,nocol:true}); break; } }
     for(let i=0;i<10;i++) for(let k=0;k<30;k++){ const x=(R()-.5)*(M.size-10), z=(R()-.45)*(M.size-10); if(free(x,z,2.2)){ put('lowwall',x,z,R()<.5?0:Math.PI/2,{vault:true}); break; } }
@@ -76,7 +76,7 @@ export class World{
     if(th==='jungle'){ place(6,(x,z)=>{ for(let i=0;i<3;i++) put('tent',x+(i-1)*4.2,z,0,{}); this.fires.push([x,0.15,z+3.5,.45]); }); for(let i=0;i<14;i++) place(1,(x,z)=>put('palm',x,z,R()*6,{s:.7+R()*.5,nocover:true})); }
     if(th==='canyon'){ for(let i=0;i<22;i++){ const a=i/22*Math.PI*2, d=H+6+R()*4; const o=lib.props.rock.clone(); o.position.set(Math.cos(a)*d,-1,Math.sin(a)*d); o.rotation.y=R()*6; o.scale.set(4+R()*3,6+R()*6,4+R()*3); statics.add(o); } }
     if(th==='refinery'){ for(let i=0;i<4;i++) place(3.5,(x,z)=>{ const o=put('fueltank',x,z,R()*6,{}); if(i<2) this.fires.push([x,o.h+.3,z,.6]); }); for(let i=0;i<6;i++) place(.8,(x,z)=>put('barrel',x,z,0,{})); }
-    if(th==='fortress'){ for(let i=0;i<6;i++) place(1.2,(x,z)=>{ put('barrel',x,z,0,{h:1}); this.fires.push([x,1.0,z,.4]); }); place(3.5,(x,z)=>put('tower',x,z,0,{nocover:true,h:9})); }
+    if(th==='fortress'){ for(let i=0;i<6;i++) place(1.2,(x,z)=>{ put('barrel',x,z,0,{h:1}); this.fires.push([x,1.0,z,.4]); }); place(3.5,(x,z)=>put('tower',x,z,0,{nocover:true,h:6.15})); }
 
     for(let i=0;i<36;i++){ const a=i/36*Math.PI*2, d=H+8+R()*25; const nm=T.tree&&R()<.6?T.tree:'rock'; const o=lib.props[nm].clone(); o.position.set(Math.cos(a)*d,0,Math.sin(a)*d); o.rotation.y=R()*6; o.scale.setScalar(nm==='rock'?2+R()*4:1+R()*.6); if(!(this.lowQ&&i%3===1))statics.add(o); }
     // objectives
